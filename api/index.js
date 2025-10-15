@@ -4,16 +4,10 @@ const fetch = require('node-fetch');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-
-// Serve static files from public directory for local development
-if (process.env.NODE_ENV !== 'production') {
-    app.use(express.static('public'));
-}
 
 // Webhook URLs
 const WEBHOOK_URL_PRODUCTION = 'https://aayushmishra.app.n8n.cloud/webhook/44405750-c847-47f7-8cba-91c9e923ffc3';
@@ -200,34 +194,4 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Serve static files for Vercel
-app.get('/styles.css', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'styles.css'));
-});
-
-app.get('/script.js', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'script.js'));
-});
-
-// Serve the main page
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Catch all route for SPA
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Export for Vercel
 module.exports = app;
-
-// Only listen if not in Vercel environment
-if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => {
-        console.log(`🚀 Chat server running on http://localhost:${PORT}`);
-        console.log(`📡 Production webhook: ${WEBHOOK_URL_PRODUCTION}`);
-        console.log(`🧪 Test webhook: ${WEBHOOK_URL_TEST}`);
-        console.log(`📝 Note: Make sure your n8n workflow is ACTIVE for the production webhook to work!`);
-    });
-}
