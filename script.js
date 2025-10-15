@@ -162,7 +162,6 @@ class ChatInterface {
         try {
             const response = await fetch(this.webhookUrl, {
                 method: 'POST',
-                mode: 'cors',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json, text/plain, */*'
