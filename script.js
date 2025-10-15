@@ -132,11 +132,13 @@ class ChatInterface {
             let errorMessage = 'Sorry, I encountered an error while processing your message. Please try again.';
             
             if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('Failed to fetch'))) {
-                errorMessage = 'Network error: This is likely due to CORS restrictions when running locally. The webhook should work when deployed to a proper server. Check the browser console for more details.';
+                errorMessage = 'Network error: Unable to connect to the webhook. This could be due to CORS restrictions or network issues. Check your webhook configuration in N8N to allow requests from your domain.';
             } else if (error.message.includes('CORS')) {
-                errorMessage = 'CORS error: The server needs to allow requests from this domain. This is normal when testing locally.';
+                errorMessage = 'CORS error: Your N8N webhook needs to be configured to allow requests from this domain. Please check your N8N webhook settings.';
             } else if (error.message.includes('HTTP error')) {
                 errorMessage = `Server error: ${error.message}`;
+            } else if (error.message.includes('Proxy')) {
+                errorMessage = 'Both direct and proxy requests failed. Please check your webhook URL and N8N configuration.';
             }
             
             this.addMessage(errorMessage, 'assistant', true);
@@ -159,39 +161,90 @@ class ChatInterface {
         
         console.log('Payload:', payload);
         
+        // Try direct request first
         try {
-            const response = await fetch(this.webhookUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json, text/plain, */*'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            console.log('Response received:', response);
-            console.log('Response status:', response.status);
-            console.log('Response ok:', response.ok);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
-            }
-
-            const contentType = response.headers.get('content-type');
-            console.log('Content-Type:', contentType);
+            const response = await this.tryDirectRequest(payload);
+            return response;
+        } catch (error) {
+            console.log('Direct request failed, trying CORS proxy...', error);
             
-            if (contentType && contentType.includes('application/json')) {
-                const jsonResponse = await response.json();
-                console.log('JSON response:', jsonResponse);
-                return jsonResponse;
-            } else {
-                const textResponse = await response.text();
-                console.log('Text response:', textResponse);
-                return textResponse;
+            // If direct request fails due to CORS, try with CORS proxy
+            try {
+                const response = await this.tryWithCorsProxy(payload);
+                return response;
+            } catch (proxyError) {
+                console.error('Both direct and proxy requests failed:', proxyError);
+                throw proxyError;
             }
-        } catch (fetchError) {
-            console.error('Fetch error details:', fetchError);
-            throw fetchError;
+        }
+    }
+
+    async tryDirectRequest(payload) {
+        const response = await fetch(this.webhookUrl, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json, text/plain, */*'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        console.log('Direct response received:', response);
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        console.log('Content-Type:', contentType);
+        
+        if (contentType && contentType.includes('application/json')) {
+            const jsonResponse = await response.json();
+            console.log('JSON response:', jsonResponse);
+            return jsonResponse;
+        } else {
+            const textResponse = await response.text();
+            console.log('Text response:', textResponse);
+            return textResponse;
+        }
+    }
+
+    async tryWithCorsProxy(payload) {
+        // Using a public CORS proxy as fallback
+        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(this.webhookUrl);
+        
+        console.log('Trying CORS proxy:', proxyUrl);
+        
+        const response = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json, text/plain, */*'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        console.log('Proxy response received:', response);
+        console.log('Proxy response status:', response.status);
+
+        if (!response.ok) {
+            throw new Error(`Proxy HTTP error! status: ${response.status} - ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        console.log('Proxy Content-Type:', contentType);
+        
+        if (contentType && contentType.includes('application/json')) {
+            const jsonResponse = await response.json();
+            console.log('Proxy JSON response:', jsonResponse);
+            return jsonResponse;
+        } else {
+            const textResponse = await response.text();
+            console.log('Proxy text response:', textResponse);
+            return textResponse;
         }
     }
 
