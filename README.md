@@ -1,4 +1,4 @@
-# Karbit Chat Interface
+# Karbit Chat Interface 
 
 A modern, responsive chat interface that communicates with the Karbit RAG system via webhook.
 
