@@ -1,19 +1,10 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/index.js"
+  "functions": {
+    "api/chat.js": {
+      "maxDuration": 30
     },
-    {
-      "src": "/(.*)",
-      "dest": "/public/$1"
+    "api/health.js": {
+      "maxDuration": 10
     }
-  ]
+  }
 }
