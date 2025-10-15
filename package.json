@@ -1,0 +1,42 @@
+{
+  "name": "karbit-rag-chat",
+  "version": "1.0.0",
+  "description": "A modern, responsive chat interface for the Karbit RAG (Retrieval-Augmented Generation) system with n8n webhook integration",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "echo 'Build complete'",
+    "vercel-build": "echo 'Vercel build complete'"
+  },
+  "keywords": [
+    "chat",
+    "interface",
+    "rag",
+    "n8n",
+    "webhook",
+    "ai",
+    "ndis",
+    "assistant",
+    "chatbot"
+  ],
+  "author": "Aayush Mishra <aayushmishraaa@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aayushmishraaa/karbit-RAG.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aayushmishraaa/karbit-RAG/issues"
+  },
+  "homepage": "https://github.com/aayushmishraaa/karbit-RAG#readme",
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "node-fetch": "^2.7.0"
+  }
+}
