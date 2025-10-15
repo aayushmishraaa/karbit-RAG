@@ -1,23 +1,28 @@
+// Chat Interface JavaScript
 class ChatInterface {
     constructor() {
         this.webhookUrl = 'https://aayushmishra.app.n8n.cloud/webhook/44405750-c847-47f7-8cba-91c9e923ffc3';
-        this.corsProxyUrl = 'https://cors-anywhere.herokuapp.com/';
-        this.localProxyUrl = '/api/chat'; // Use local proxy when available
-        this.useCorsProxy = false; // Toggle this if CORS issues occur
-        this.useLocalProxy = true; // Prefer local proxy
-        this.messageInput = document.getElementById('messageInput');
-        this.sendButton = document.getElementById('sendButton');
-        this.chatMessages = document.getElementById('chatMessages');
-        this.typingIndicator = document.getElementById('typingIndicator');
-        this.errorToast = document.getElementById('errorToast');
-        
-        this.init();
+        this.initializeElements();
+        this.bindEvents();
+        this.initializeChat();
     }
 
-    init() {
-        // Event listeners
+    initializeElements() {
+        this.messagesContainer = document.getElementById('messages-container');
+        this.messageInput = document.getElementById('message-input');
+        this.sendButton = document.getElementById('send-button');
+        this.typingIndicator = document.getElementById('typing-indicator');
+        this.loadingOverlay = document.getElementById('loading-overlay');
+        this.errorToast = document.getElementById('error-toast');
+        this.errorMessage = document.getElementById('error-message');
+        this.charCount = document.getElementById('char-count');
+    }
+
+    bindEvents() {
+        // Send message on button click
         this.sendButton.addEventListener('click', () => this.sendMessage());
-        document.getElementById('testButton').addEventListener('click', () => this.testConnection());
+        
+        // Send message on Enter key press
         this.messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -25,422 +30,271 @@ class ChatInterface {
             }
         });
 
-        // Auto-resize input on content change
+        // Update character count and send button state
         this.messageInput.addEventListener('input', () => {
-            this.adjustInputHeight();
+            this.updateCharCount();
+            this.updateSendButtonState();
         });
 
-        // Focus input on load
+        // Focus input on page load
+        this.messageInput.addEventListener('focus', () => {
+            this.scrollToBottom();
+        });
+    }
+
+    initializeChat() {
         this.messageInput.focus();
+        this.updateSendButtonState();
+        console.log('Chat interface initialized');
     }
 
-    adjustInputHeight() {
-        this.messageInput.style.height = 'auto';
-        this.messageInput.style.height = Math.min(this.messageInput.scrollHeight, 120) + 'px';
-    }
-
-    async testConnection() {
-        const testButton = document.getElementById('testButton');
-        const originalText = testButton.innerHTML;
+    updateCharCount() {
+        const length = this.messageInput.value.length;
+        this.charCount.textContent = `${length} / 1000`;
         
-        testButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
-        testButton.disabled = true;
-
-        try {
-            console.log('Testing webhook connection...');
-            const response = await this.sendToWebhook('Connection test');
-            this.addMessage('✅ Webhook connection successful! Response: ' + response, 'bot');
-            testButton.innerHTML = '<i class="fas fa-check"></i> Connected';
-            testButton.style.background = '#10b981';
-        } catch (error) {
-            console.error('Connection test failed:', error);
-            this.addMessage('❌ Connection failed: ' + error.message, 'bot');
-            testButton.innerHTML = '<i class="fas fa-times"></i> Failed';
-            testButton.style.background = '#ef4444';
+        if (length > 800) {
+            this.charCount.style.color = '#ef4444';
+        } else if (length > 600) {
+            this.charCount.style.color = '#f59e0b';
+        } else {
+            this.charCount.style.color = '#94a3b8';
         }
+    }
 
-        setTimeout(() => {
-            testButton.innerHTML = originalText;
-            testButton.disabled = false;
-            testButton.style.background = '#f59e0b';
-        }, 3000);
+    updateSendButtonState() {
+        const message = this.messageInput.value.trim();
+        this.sendButton.disabled = !message || message.length === 0;
     }
 
     async sendMessage() {
         const message = this.messageInput.value.trim();
-        
-        if (!message) {
-            this.showError('Please enter a message');
-            return;
-        }
-
-        // Disable input while sending
-        this.setInputState(false);
-        
-        // Add user message to chat
-        this.addMessage(message, 'user');
-        
-        // Clear input
-        this.messageInput.value = '';
-        this.adjustInputHeight();
-        
-        // Show typing indicator
-        this.showTypingIndicator();
+        if (!message) return;
 
         try {
+            // Clear input and disable send button
+            this.messageInput.value = '';
+            this.updateCharCount();
+            this.updateSendButtonState();
+
+            // Remove welcome message if it exists
+            this.removeWelcomeMessage();
+
+            // Add user message to chat
+            this.addMessage(message, 'user');
+
+            // Show typing indicator
+            this.showTypingIndicator();
+
             // Send message to webhook
             const response = await this.sendToWebhook(message);
-            
+
             // Hide typing indicator
             this.hideTypingIndicator();
-            
-            // Add bot response to chat
-            this.addMessage(response, 'bot');
-            
+
+            // Process and display response
+            this.handleWebhookResponse(response);
+
         } catch (error) {
             console.error('Error sending message:', error);
             this.hideTypingIndicator();
-            this.showError('Failed to send message. Please try again.');
+            this.showError('Failed to send message. Please check your connection and try again.');
         } finally {
-            // Re-enable input
-            this.setInputState(true);
             this.messageInput.focus();
         }
     }
 
     async sendToWebhook(message) {
-        const payload = {
+        const requestBody = {
             message: message,
             timestamp: new Date().toISOString(),
-            user_id: this.getUserId()
+            user_id: this.generateUserId(),
+            session_id: this.getSessionId()
         };
 
-        console.log('Sending payload to webhook:', payload);
-        console.log('Webhook URL:', this.webhookUrl);
+        const response = await fetch(this.webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
 
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data;
+    }
+
+    handleWebhookResponse(response) {
         try {
-            let finalUrl, requestOptions;
-            
-            if (this.useLocalProxy) {
-                // Use local proxy server
-                finalUrl = this.localProxyUrl;
-                requestOptions = {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify(payload),
-                };
-            } else if (this.useCorsProxy) {
-                // Use CORS proxy
-                finalUrl = this.corsProxyUrl + this.webhookUrl;
-                requestOptions = {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify(payload),
-                    mode: 'cors',
-                };
+            let assistantMessage = '';
+
+            // Handle different response formats
+            if (typeof response === 'string') {
+                assistantMessage = response;
+            } else if (response.message) {
+                assistantMessage = response.message;
+            } else if (response.response) {
+                assistantMessage = response.response;
+            } else if (response.text) {
+                assistantMessage = response.text;
+            } else if (response.content) {
+                assistantMessage = response.content;
             } else {
-                // Direct webhook call
-                finalUrl = this.webhookUrl;
-                requestOptions = {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify(payload),
-                    mode: 'cors',
-                };
-            }
-            
-            console.log('Final URL:', finalUrl);
-            console.log('Request options:', requestOptions);
-            
-            const response = await fetch(finalUrl, requestOptions);
-
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Error response:', errorText);
-                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+                // If response is an object, try to extract meaningful content
+                assistantMessage = this.extractMessageFromObject(response);
             }
 
-            // Try to parse as JSON first
-            let data;
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                data = await response.json();
+            // Clean and format the message
+            assistantMessage = this.cleanMessage(assistantMessage);
+
+            if (assistantMessage) {
+                this.addMessage(assistantMessage, 'assistant');
             } else {
-                // If not JSON, treat as text
-                data = await response.text();
+                this.showError('Received an empty response from the server.');
             }
 
-            console.log('Response data:', data);
-            
-            // Handle local proxy response format
-            if (this.useLocalProxy && data.success) {
-                data = data.data;
-            } else if (this.useLocalProxy && data.error) {
-                // Handle error response from local proxy
-                let errorMessage = data.error;
-                if (data.suggestion) {
-                    errorMessage += '\n\nSuggestion: ' + data.suggestion;
-                }
-                throw new Error(errorMessage);
-            }
-            
-            // Extract response text from various possible response formats
-            if (typeof data === 'object') {
-                if (data.response) {
-                    return data.response;
-                } else if (data.message) {
-                    return data.message;
-                } else if (data.text) {
-                    return data.text;
-                } else if (data.data) {
-                    return data.data;
-                } else {
-                    return JSON.stringify(data);
-                }
-            } else if (typeof data === 'string') {
-                return data;
-            } else {
-                return 'I received your message, but I\'m not sure how to respond right now.';
-            }
         } catch (error) {
-            console.error('Fetch error:', error);
-            
-            // Check if it's a CORS error
-            if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                if (this.useLocalProxy) {
-                    // Try direct webhook if local proxy fails
-                    console.log('Local proxy failed, trying direct webhook...');
-                    this.useLocalProxy = false;
-                    return this.sendToWebhook(message);
-                } else if (!this.useCorsProxy) {
-                    // Try again with CORS proxy
-                    console.log('Retrying with CORS proxy...');
-                    this.useCorsProxy = true;
-                    return this.sendToWebhook(message);
-                }
-                throw new Error('Connection failed. The webhook might not be accessible or CORS is blocking the request.');
-            }
-            
-            throw error;
+            console.error('Error processing response:', error);
+            this.showError('Failed to process the response. Please try again.');
         }
     }
 
-    addMessage(text, sender) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${sender}-message`;
+    extractMessageFromObject(obj) {
+        // Try to find a message in nested objects
+        const possibleKeys = ['message', 'response', 'text', 'content', 'data', 'result', 'output'];
         
-        const avatarDiv = document.createElement('div');
-        avatarDiv.className = 'message-avatar';
-        avatarDiv.innerHTML = sender === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
-        
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'message-content';
-        
-        const textDiv = document.createElement('div');
-        textDiv.className = 'message-text';
-        textDiv.textContent = text;
-        
-        const timeDiv = document.createElement('div');
-        timeDiv.className = 'message-time';
-        timeDiv.textContent = this.formatTime(new Date());
-        
-        contentDiv.appendChild(textDiv);
-        contentDiv.appendChild(timeDiv);
-        
-        messageDiv.appendChild(avatarDiv);
-        messageDiv.appendChild(contentDiv);
-        
-        this.chatMessages.appendChild(messageDiv);
+        for (const key of possibleKeys) {
+            if (obj[key] && typeof obj[key] === 'string') {
+                return obj[key];
+            }
+        }
+
+        // If no string found, stringify the object (last resort)
+        return JSON.stringify(obj, null, 2);
+    }
+
+    cleanMessage(message) {
+        if (typeof message !== 'string') {
+            return String(message);
+        }
+
+        // Remove excessive whitespace
+        return message.trim().replace(/\s+/g, ' ');
+    }
+
+    addMessage(content, sender) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message', sender);
+
+        const bubble = document.createElement('div');
+        bubble.classList.add('message-bubble');
+        bubble.textContent = content;
+
+        const time = document.createElement('div');
+        time.classList.add('message-time');
+        time.textContent = this.getCurrentTime();
+
+        messageElement.appendChild(bubble);
+        messageElement.appendChild(time);
+
+        this.messagesContainer.appendChild(messageElement);
         this.scrollToBottom();
     }
 
+    removeWelcomeMessage() {
+        const welcomeMessage = this.messagesContainer.querySelector('.welcome-message');
+        if (welcomeMessage) {
+            welcomeMessage.remove();
+        }
+    }
+
     showTypingIndicator() {
-        this.typingIndicator.classList.add('show');
+        this.typingIndicator.style.display = 'flex';
         this.scrollToBottom();
     }
 
     hideTypingIndicator() {
-        this.typingIndicator.classList.remove('show');
+        this.typingIndicator.style.display = 'none';
     }
 
-    setInputState(enabled) {
-        this.messageInput.disabled = !enabled;
-        this.sendButton.disabled = !enabled;
+    showError(message) {
+        this.errorMessage.textContent = message;
+        this.errorToast.style.display = 'flex';
         
-        if (enabled) {
-            this.messageInput.placeholder = 'Type your message here...';
-        } else {
-            this.messageInput.placeholder = 'Sending message...';
-        }
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            this.hideErrorToast();
+        }, 5000);
+    }
+
+    hideErrorToast() {
+        this.errorToast.style.display = 'none';
     }
 
     scrollToBottom() {
         setTimeout(() => {
-            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+            this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
         }, 100);
     }
 
-    showError(message) {
-        const errorMessage = this.errorToast.querySelector('.error-message');
-        errorMessage.textContent = message;
-        this.errorToast.classList.add('show');
-        
-        setTimeout(() => {
-            this.errorToast.classList.remove('show');
-        }, 5000);
+    getCurrentTime() {
+        const now = new Date();
+        return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
-    formatTime(date) {
-        return date.toLocaleTimeString([], { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
-    }
-
-    getUserId() {
-        // Generate or retrieve a simple user ID for session tracking
-        let userId = localStorage.getItem('chat_user_id');
-        if (!userId) {
-            userId = 'user_' + Math.random().toString(36).substr(2, 9);
+    generateUserId() {
+        // Generate a simple user ID for this session
+        if (!localStorage.getItem('chat_user_id')) {
+            const userId = 'user_' + Math.random().toString(36).substr(2, 9);
             localStorage.setItem('chat_user_id', userId);
         }
-        return userId;
+        return localStorage.getItem('chat_user_id');
+    }
+
+    getSessionId() {
+        // Generate a session ID for this chat session
+        if (!this.sessionId) {
+            this.sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+        return this.sessionId;
     }
 }
 
-// Enhanced message formatting for better display
-class MessageFormatter {
-    static format(text) {
-        if (!text) return '';
-        
-        // Convert to string if not already
-        text = String(text);
-        
-        // Handle basic markdown-like formatting
-        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-        text = text.replace(/`(.*?)`/g, '<code>$1</code>');
-        
-        // Handle line breaks
-        text = text.replace(/\n/g, '<br>');
-        
-        // Handle URLs (make them clickable)
-        text = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
-        
-        // Handle email addresses
-        text = text.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1">$1</a>');
-        
-        return text;
-    }
-    
-    static addTypingEffect(element, text, speed = 30) {
-        element.innerHTML = '';
-        let i = 0;
-        
-        const typeWriter = () => {
-            if (i < text.length) {
-                element.innerHTML += text.charAt(i);
-                i++;
-                setTimeout(typeWriter, speed);
-            } else {
-                // Add formatted content after typing is complete
-                element.innerHTML = MessageFormatter.format(text);
-            }
-        };
-        
-        typeWriter();
-    }
+// Global function for closing error toast
+function hideErrorToast() {
+    document.getElementById('error-toast').style.display = 'none';
 }
 
-// Enhanced version of addMessage with formatting and animations
-ChatInterface.prototype.addMessage = function(text, sender) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${sender}-message`;
-    
-    const avatarDiv = document.createElement('div');
-    avatarDiv.className = 'message-avatar';
-    avatarDiv.innerHTML = sender === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
-    
-    const textDiv = document.createElement('div');
-    textDiv.className = 'message-text';
-    
-    const timeDiv = document.createElement('div');
-    timeDiv.className = 'message-time';
-    timeDiv.textContent = this.formatTime(new Date());
-    
-    contentDiv.appendChild(textDiv);
-    contentDiv.appendChild(timeDiv);
-    
-    messageDiv.appendChild(avatarDiv);
-    messageDiv.appendChild(contentDiv);
-    
-    this.chatMessages.appendChild(messageDiv);
-    
-    // Add typing effect for bot messages, instant for user messages
-    if (sender === 'bot') {
-        // Add a subtle fade-in and typing effect for bot responses
-        messageDiv.style.opacity = '0';
-        messageDiv.style.transform = 'translateY(20px)';
-        
-        setTimeout(() => {
-            messageDiv.style.transition = 'all 0.3s ease-out';
-            messageDiv.style.opacity = '1';
-            messageDiv.style.transform = 'translateY(0)';
-            
-            // Start typing effect after fade-in
-            setTimeout(() => {
-                MessageFormatter.addTypingEffect(textDiv, text, 20);
-            }, 300);
-        }, 100);
-    } else {
-        // Instant display for user messages
-        textDiv.innerHTML = MessageFormatter.format(text);
+// Initialize chat when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Initializing Karbit Chat Interface...');
+    window.chatInterface = new ChatInterface();
+});
+
+// Handle online/offline status
+window.addEventListener('online', () => {
+    const statusDot = document.querySelector('.status-dot');
+    const statusText = document.querySelector('.status-text');
+    statusDot.className = 'status-dot online';
+    statusText.textContent = 'Online';
+});
+
+window.addEventListener('offline', () => {
+    const statusDot = document.querySelector('.status-dot');
+    const statusText = document.querySelector('.status-text');
+    statusDot.className = 'status-dot offline';
+    statusText.textContent = 'Offline';
+});
+
+// Add offline status styles
+const style = document.createElement('style');
+style.textContent = `
+    .status-dot.offline {
+        background: #ef4444;
     }
-    
-    this.scrollToBottom();
-};
-
-// Initialize the chat interface when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-    new ChatInterface();
-});
-
-// Add some utility functions for better UX
-document.addEventListener('DOMContentLoaded', () => {
-    // Add click to focus functionality
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.chat-input-wrapper') && !e.target.closest('.send-button')) {
-            const messageInput = document.getElementById('messageInput');
-            if (messageInput && !messageInput.disabled) {
-                messageInput.focus();
-            }
-        }
-    });
-
-    // Add escape key to clear input
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            const messageInput = document.getElementById('messageInput');
-            if (messageInput) {
-                messageInput.value = '';
-                messageInput.style.height = 'auto';
-            }
-        }
-    });
-});
+`;
+document.head.appendChild(style);

@@ -1,216 +1,180 @@
-# Karbit RAG Chat Interface
+# Karbit Chat Interface
 
-A modern, responsive chat interface for the Karbit RAG (Retrieval-Augmented Generation) system. This application provides a beautiful, real-time chat experience that connects to your n8n webhook for NDIS-related queries and assistance.
+A modern, responsive chat interface that communicates with the Karbit RAG system via webhook.
 
-![Chat Interface Preview](https://img.shields.io/badge/Status-Active-brightgreen)
-![Node.js](https://img.shields.io/badge/Node.js-v14+-blue)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+## Features
 
-## ✨ Features
+- 🎨 Beautiful, modern UI design
+- 📱 Fully responsive (mobile-friendly)
+- ⚡ Real-time webhook communication
+- 💬 Typing indicators and status updates
+- 🔄 Automatic response parsing
+- 📊 Character count and input validation
+- 🚨 Error handling with user-friendly messages
+- 💾 Session and user ID management
+- 🌐 Online/offline status detection
 
-### 🎨 **Modern Design**
-- Beautiful gradient backgrounds with glassmorphism effects
-- Responsive design that works on desktop, tablet, and mobile
-- Smooth animations and transitions
-- Professional color scheme with purple/blue gradients
-
-### 💬 **Chat Experience**
-- Real-time typing indicators with animated dots
-- Message timestamps for conversation tracking
-- Distinct user and bot avatars
-- Typing animation effects for bot responses
-- Rich text formatting support (bold, italic, code, links)
-
-### 🔧 **Technical Features**
-- **Webhook Integration**: Direct connection to n8n workflows
-- **CORS Handling**: Built-in proxy server to handle cross-origin requests
-- **Automatic Fallback**: Production → Test webhook fallback system
-- **Error Handling**: Comprehensive error messages with helpful suggestions
-- **Session Tracking**: Unique user IDs for conversation continuity
-
-### 🛡️ **Reliability**
-- Robust error handling for network issues
-- Automatic retry mechanisms
-- Clear status indicators and connection testing
-- Detailed logging for debugging
-
-## 🚀 Quick Start
+## Getting Started
 
 ### Prerequisites
+
 - Node.js (v14 or higher)
-- npm or yarn
-- Active n8n workflow with webhook
+- Modern web browser
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/aayushmishraaa/karbit-RAG.git
-   cd karbit-RAG
-   ```
-
-2. **Install dependencies**
+1. Clone or download this repository
+2. Navigate to the project directory
+3. Install dependencies:
    ```bash
    npm install
    ```
 
-3. **Configure your webhook**
-   - Update the webhook URL in `server.js` if needed
-   - Ensure your n8n workflow is active
+### Running the Application
 
-4. **Start the application**
-   ```bash
-   npm start
-   ```
-
-5. **Open your browser**
-   ```
-   http://localhost:3000
-   ```
-
-## 📁 Project Structure
-
-```
-karbit-RAG/
-├── index.html          # Main HTML structure
-├── styles.css          # Modern CSS styling with animations
-├── script.js           # Client-side JavaScript functionality
-├── server.js           # Node.js proxy server
-├── package.json        # Node.js dependencies and scripts
-├── .gitignore          # Git ignore rules
-└── README.md           # Project documentation
-```
-
-## 🔧 Configuration
-
-### Webhook URLs
-The application supports both production and test webhooks:
-
-- **Production**: `https://aayushmishra.app.n8n.cloud/webhook/[webhook-id]`
-- **Test**: `https://aayushmishra.app.n8n.cloud/webhook-test/[webhook-id]`
-
-### Environment Setup
-Update the webhook URLs in `server.js`:
-
-```javascript
-const WEBHOOK_URL_PRODUCTION = 'your-production-webhook-url';
-const WEBHOOK_URL_TEST = 'your-test-webhook-url';
-```
-
-## 🎯 Usage
-
-### Basic Chat
-1. Type your message in the input field
-2. Press Enter or click the send button
-3. Wait for the AI response with typing animation
-
-### Test Connection
-- Click the "Test Connection" button to verify webhook connectivity
-- The system will automatically try different webhook endpoints
-- Clear error messages guide you to fix any issues
-
-### Keyboard Shortcuts
-- **Enter**: Send message
-- **Escape**: Clear input field
-- **Click anywhere**: Focus input (for better UX)
-
-## 🔗 API Integration
-
-### Webhook Payload Format
-```json
-{
-  "message": "User's question or input",
-  "timestamp": "2025-10-15T10:30:00.000Z",
-  "user_id": "unique_user_identifier"
-}
-```
-
-### Expected Response Format
-The webhook can return responses in various formats:
-
-```json
-{
-  "output": "AI response text"
-}
-```
-
-Or:
-```json
-{
-  "response": "AI response text",
-  "message": "Alternative response field",
-  "text": "Another supported field"
-}
-```
-
-## 🛠️ Development
-
-### Running in Development Mode
+#### Option 1: Using http-server (recommended)
 ```bash
 npm start
 ```
 
-### Project Dependencies
-- **express**: Web server framework
-- **cors**: Cross-origin resource sharing
-- **node-fetch**: HTTP request library
+#### Option 2: Using live-server (with hot reload)
+```bash
+npm run dev
+```
 
-### Adding Features
-1. **Client-side**: Edit `script.js` for frontend functionality
-2. **Styling**: Modify `styles.css` for visual changes
-3. **Server-side**: Update `server.js` for backend logic
+The application will open automatically in your default browser at `http://localhost:3000`.
 
-## 🔍 Troubleshooting
+### Manual Setup
+
+If you prefer not to use Node.js, you can simply open `index.html` in your web browser directly.
+
+## Usage
+
+1. Open the chat interface in your browser
+2. Type a message in the input field at the bottom
+3. Press Enter or click the send button
+4. Wait for the AI assistant to respond via the webhook
+5. Continue the conversation!
+
+## Webhook Configuration
+
+The chat interface is configured to send messages to:
+```
+https://aayushmishra.app.n8n.cloud/webhook/44405750-c847-47f7-8cba-91c9e923ffc3
+```
+
+### Request Format
+
+The application sends POST requests with the following JSON structure:
+```json
+{
+  "message": "User's message here",
+  "timestamp": "2025-10-15T10:30:00.000Z",
+  "user_id": "user_abc123def",
+  "session_id": "session_1697368200000_xyz789"
+}
+```
+
+### Response Handling
+
+The interface can handle various response formats:
+- Simple string responses
+- JSON objects with `message`, `response`, `text`, or `content` fields
+- Complex nested objects (automatically extracts meaningful content)
+
+## Customization
+
+### Styling
+- Modify `styles.css` to change colors, fonts, or layout
+- Update CSS variables for quick theme changes
+
+### Webhook URL
+- Change the webhook URL in `script.js` (line 4) to point to your endpoint
+
+### Branding
+- Update the title and branding in `index.html`
+- Modify the header content and colors in the CSS
+
+## Browser Compatibility
+
+- Chrome/Chromium (recommended)
+- Firefox
+- Safari
+- Edge
+- Mobile browsers (iOS Safari, Chrome Mobile)
+
+## File Structure
+
+```
+karbit-RAG/
+├── index.html          # Main HTML file
+├── styles.css          # CSS styling
+├── script.js           # JavaScript functionality
+├── package.json        # Node.js configuration
+└── README.md          # This file
+```
+
+## Troubleshooting
 
 ### Common Issues
 
-**"Failed to send message" Error**
-- Ensure your n8n workflow is active
-- Check webhook URLs are correct
-- Verify internet connectivity
+1. **CORS Errors**: If you encounter CORS issues, make sure your webhook endpoint supports cross-origin requests.
 
-**Webhook 404 Error**
-- Activate your n8n workflow using the toggle switch
-- Check if webhook URL is correctly configured
-- Use test webhook for development
+2. **Network Errors**: Check your internet connection and verify the webhook URL is accessible.
 
-**CORS Issues**
-- The built-in proxy server handles CORS automatically
-- Ensure server is running on the correct port
+3. **Empty Responses**: The interface handles various response formats, but if responses appear empty, check the webhook's response structure.
 
-### Debug Mode
-Open browser console (F12) to see detailed logs:
-- Request/response details
-- Webhook URL being used
-- Error messages and suggestions
+4. **Styling Issues**: Clear your browser cache or try a hard refresh (Ctrl+F5).
 
-## 📝 License
+### Error Messages
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+The interface provides user-friendly error messages for:
+- Network connection issues
+- Server errors (4xx, 5xx)
+- Invalid response formats
+- Timeout issues
 
-## 🤝 Contributing
+## Development
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+### Adding New Features
 
-## 🆘 Support
+1. Modify the HTML structure in `index.html`
+2. Add corresponding styles in `styles.css`
+3. Implement functionality in `script.js`
 
-If you encounter any issues or have questions:
+### Testing
 
-1. Check the troubleshooting section above
-2. Look at browser console for error details
-3. Ensure your n8n workflow is properly configured and active
-4. Open an issue on GitHub with detailed information
+Test the interface with different:
+- Message lengths
+- Response formats
+- Network conditions
+- Device sizes
 
-## 🙏 Acknowledgments
+## Deployment
 
-- Built with modern web technologies
-- Integrated with n8n workflow automation
-- Designed for NDIS assistance and support
+### Static Hosting
+Deploy the files to any static hosting service:
+- GitHub Pages
+- Netlify
+- Vercel
+- AWS S3
+- Azure Static Web Apps
+
+### Local Network
+Share on your local network:
+```bash
+npm start
+```
+Then access from other devices using your local IP address.
+
+## License
+
+MIT License - feel free to modify and distribute as needed.
+
+## Support
+
+For issues or questions, please check the troubleshooting section or create an issue in the repository.
 
 ---
 
-**Made with ❤️ for better NDIS assistance**
+**Powered by Karbit RAG System**

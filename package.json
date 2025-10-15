@@ -1,42 +1,35 @@
 {
-  "name": "karbit-rag-chat",
+  "name": "karbit-chat-interface",
   "version": "1.0.0",
-  "description": "A modern, responsive chat interface for the Karbit RAG (Retrieval-Augmented Generation) system with n8n webhook integration",
-  "main": "server.js",
+  "description": "A stylish chat interface that communicates with Karbit RAG webhook",
+  "main": "index.html",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
-    "build": "echo 'Build complete'",
-    "vercel-build": "echo 'Vercel build complete'"
+    "start": "npx http-server . -p 3000 -o",
+    "dev": "npx live-server --port=3000 --open=/index.html",
+    "build": "echo 'Static site - no build required'",
+    "deploy": "echo 'Ready for deployment'",
+    "test": "echo 'Opening test page' && start http://localhost:3000"
   },
   "keywords": [
     "chat",
     "interface",
-    "rag",
-    "n8n",
     "webhook",
     "ai",
-    "ndis",
-    "assistant",
-    "chatbot"
+    "karbit",
+    "rag"
   ],
-  "author": "Aayush Mishra <aayushmishraaa@example.com>",
+  "author": "Aayush Mishra",
   "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "live-server": "^1.2.2"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/aayushmishraaa/karbit-RAG.git"
   },
-  "bugs": {
-    "url": "https://github.com/aayushmishraaa/karbit-RAG/issues"
-  },
-  "homepage": "https://github.com/aayushmishraaa/karbit-RAG#readme",
+  "homepage": ".",
   "engines": {
-    "node": ">=14.0.0",
-    "npm": ">=6.0.0"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "node-fetch": "^2.7.0"
+    "node": ">=14.0.0"
   }
 }
